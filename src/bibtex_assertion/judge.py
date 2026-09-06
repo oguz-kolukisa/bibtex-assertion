@@ -24,7 +24,7 @@ after the listed ones are NOT an error. Compare the raw author field too: a garb
 (e.g. {\\u{A}} standing in for a first name) is a MINOR defect. A wrong first name for a correct surname
 counts as an added non-author (HALLUCINATED). A wrong surname is an added non-author, not a misspelling,
 unless it is within one or two letters of the real one.
-An arXiv record is a preprint, never evidence about the published venue: if the entry cites a conference
+A record whose venue is arXiv, CoRR or 'arXiv (Cornell University)', from ANY database, is a preprint record and never evidence about the published venue: if the entry cites a conference
 or journal and the only record is arXiv, treat the venue as unverified, not wrong. Flag a venue only when
 a record from a publisher database (OpenAlex, Crossref, DBLP) shows a different published venue. A year
 that differs from the arXiv year but matches the published venue's year is correct.
