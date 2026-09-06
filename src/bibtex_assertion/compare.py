@@ -37,8 +37,12 @@ def assess(entry: Entry, candidates: list[Candidate]) -> Assessment:
         return _unverifiable(entry, candidates)
     assessment = Assessment(entry.key, "ok", best, title_similarity(entry.title, best.title))
     _check_authors(entry, best, assessment)
-    _check_year(entry, best, assessment)
+    _check_year(entry, _matching_records(entry, candidates), assessment)
     return assessment
+
+
+def _matching_records(entry: Entry, candidates: list[Candidate]) -> list[Candidate]:
+    return [c for c in candidates if title_similarity(entry.title, c.title) >= TITLE_MATCH]
 
 
 def _best_match(entry: Entry, candidates: list[Candidate]) -> Candidate | None:
@@ -122,8 +126,11 @@ def _note_problems(entry: Entry, out: Assessment, truncated: bool) -> None:
         out.problems.append(f"author '{bib_name}' should be '{real_name}'")
 
 
-def _check_year(entry: Entry, best: Candidate, out: Assessment) -> None:
-    if entry.year and best.year and abs(int(entry.year) - int(best.year)) > 1:
-        out.problems.append(f"year {entry.year} vs {best.year} at {best.source}")
-        if out.verdict == "ok":
-            out.verdict = "minor"
+def _check_year(entry: Entry, records: list[Candidate], out: Assessment) -> None:
+    """A preprint year differing from the published year is normal, so any record may vouch for the year."""
+    years = {r.year for r in records if r.year.isdigit()}
+    if not entry.year.isdigit() or not years or any(abs(int(entry.year) - int(y)) <= 1 for y in years):
+        return
+    out.problems.append(f"year {entry.year} vs {'/'.join(sorted(years))} in the records")
+    if out.verdict == "ok":
+        out.verdict = "minor"

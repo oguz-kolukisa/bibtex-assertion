@@ -20,7 +20,7 @@ class Lookup:
         found: list[Candidate] = []
         for name, fetch in self._sources():
             found.extend(self._safe(name, fetch, entry))
-        return sorted(found, key=lambda c: -title_similarity(entry.title, c.title))
+        return sorted(found, key=lambda c: (-round(title_similarity(entry.title, c.title), 2), c.source == "arxiv"))
 
     def _sources(self):
         return [

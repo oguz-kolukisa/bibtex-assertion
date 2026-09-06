@@ -1,3 +1,3 @@
 """Assert that BibTeX entries describe real, correctly attributed papers."""
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"

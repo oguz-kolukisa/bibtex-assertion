@@ -90,3 +90,17 @@ def test_dataset_page_with_loose_record_is_unverifiable(bad7_entries):
 def test_compound_surname_is_not_a_misspelling(bad7_entries):
     out = verdict(bad7_entries, "rottshaham2024maia")
     assert out.misspelled_authors == [] and out.invented_authors == ["herber"]
+
+
+def test_published_year_is_vouched_by_any_matching_record(bad7_entries):
+    entry = bad7_entries["he2016deep"]  # bib says 2016
+    preprint = Candidate("arxiv", entry.title, ("Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"), year="2015")
+    published = Candidate("openalex", entry.title, ("Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"), year="2016", venue="CVPR")
+    assert assess(entry, [preprint, published]).verdict == "ok"
+    assert assess(entry, [preprint]).verdict == "ok"  # 2015 is within one year of 2016
+
+
+def test_year_far_from_every_record_is_minor(bad7_entries):
+    entry = bad7_entries["he2016deep"]
+    old = Candidate("arxiv", entry.title, ("Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"), year="2012")
+    assert assess(entry, [old]).verdict == "minor"
