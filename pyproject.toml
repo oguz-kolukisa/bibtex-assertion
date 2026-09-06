@@ -1,6 +1,6 @@
 [project]
 name = "bibtex-assertion"
-version = "0.3.0"
+version = "0.3.1"
 description = "Assert that BibTeX entries describe real papers with correct authors, venue and year, using free scholarly APIs plus an LLM adjudicator."
 readme = "README.md"
 requires-python = ">=3.11"

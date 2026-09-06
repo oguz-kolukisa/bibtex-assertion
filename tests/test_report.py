@@ -19,3 +19,9 @@ def test_verdict_takes_the_stricter_side():
     strict_llm = Result(Assessment("k", "ok"), {"verdict": "hallucinated"})
     assert strict_rules.verdict == "hallucinated" and strict_llm.verdict == "hallucinated"
     assert Result(Assessment("k", "unverifiable"), {"verdict": "ok"}).verdict == "unverifiable"
+
+
+def test_problem_table_has_a_paper_column(bad7_entries):
+    entry = bad7_entries["arjovsky2019invariant"]
+    md = to_markdown([Result(Assessment(entry.key, "hallucinated"), None, [], entry)])
+    assert "| Key | Paper | Verdict |" in md and "| Invariant Risk Minimization |" in md

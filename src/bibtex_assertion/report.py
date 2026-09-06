@@ -32,8 +32,8 @@ class Result:
         return bool(self.llm) and self.llm.get("verdict") in _ICON and self.llm["verdict"] != self.rules.verdict
 
     def to_dict(self) -> dict:
-        return {"key": self.rules.key, "verdict": self.verdict, "rules": self.rules.to_dict(), "llm": self.llm,
-                "disagreement": self.disagreement, "errors": self.errors}
+        return {"key": self.rules.key, "title": self.entry.title if self.entry else "", "verdict": self.verdict,
+                "rules": self.rules.to_dict(), "llm": self.llm, "disagreement": self.disagreement, "errors": self.errors}
 
 
 def to_json(results: list[Result]) -> str:
@@ -59,27 +59,35 @@ def _summary(results: list[Result]) -> list[str]:
 def _problem_table(flagged: list[Result]) -> list[str]:
     if not flagged:
         return ["No problems found."]
-    header = ["## Problems", "", "| Key | Verdict | Ours (BibTeX) | Real (best record) | Rule-based diff | LLM comment |",
-              "|---|---|---|---|---|---|"]
+    header = ["## Problems", "",
+              "| Key | Paper | Verdict | Ours (BibTeX) | Real (best record) | Rule-based diff | LLM comment |",
+              "|---|---|---|---|---|---|---|"]
     return header + [_row(r) for r in flagged]
 
 
 def _row(r: Result) -> str:
-    cells = [f"`{r.rules.key}`", _ICON[r.verdict], _ours(r), _real(r), _diff(r), _llm_comment(r)]
+    cells = [f"`{r.rules.key}`", _paper(r), _ICON[r.verdict], _ours(r), _real(r), _diff(r), _llm_comment(r)]
     return "| " + " | ".join(_cell(c) for c in cells) + " |"
+
+
+def _paper(r: Result) -> str:
+    if r.entry is not None and r.entry.title:
+        return r.entry.title
+    return r.rules.best.title if r.rules.best else "-"
 
 
 def _ours(r: Result) -> str:
     if r.entry is None:
         return "-"
-    return f"{r.entry.title} — {'; '.join(r.entry.authors) or 'no authors'} — {r.entry.venue or 'no venue'} {r.entry.year}"
+    return f"{'; '.join(r.entry.authors) or 'no authors'} — {r.entry.venue or 'no venue'} {r.entry.year}".strip()
 
 
 def _real(r: Result) -> str:
     best = r.rules.best
     if best is None:
         return "no matching record" if not r.rules.problems else r.rules.problems[0]
-    return f"{best.title} — {'; '.join(best.authors)} — {best.venue or best.source} {best.year} ({best.source})"
+    title = "" if r.entry and best.title.lower() == r.entry.title.lower() else f"title: {best.title} — "
+    return f"{title}{'; '.join(best.authors)} — {best.venue or best.source} {best.year} ({best.source})"
 
 
 def _diff(r: Result) -> str:
