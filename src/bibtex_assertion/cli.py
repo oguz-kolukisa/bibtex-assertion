@@ -21,7 +21,8 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     entries = _select(parse_bib(Path(args.bib).read_text(encoding="utf-8")), args.only)
     results = run(entries, args)
-    _write_outputs(results, args)
+    if not args.md:
+        print(to_markdown(results))
     return 1 if any(r.verdict == "hallucinated" for r in results) else 0
 
 
@@ -32,6 +33,7 @@ def run(entries: list[Entry], args: argparse.Namespace) -> list[Result]:
     for entry in entries:
         results.append(_check_one(entry, lookup, judge))
         _progress(results[-1])
+        _write_report_files(results, args)  # rewritten after every entry so a killed run still leaves a report
     return results
 
 
@@ -92,12 +94,9 @@ def _progress(result: Result) -> None:
     print(f"{result.rules.key:<32} {result.verdict}", file=sys.stderr)
 
 
-def _write_outputs(results: list[Result], args) -> None:
-    markdown = to_markdown(results)
+def _write_report_files(results: list[Result], args) -> None:
     if args.md:
-        Path(args.md).write_text(markdown, encoding="utf-8")
-    else:
-        print(markdown)
+        Path(args.md).write_text(to_markdown(results), encoding="utf-8")
     if args.json:
         Path(args.json).write_text(to_json(results), encoding="utf-8")
 
