@@ -84,6 +84,16 @@ uv run pytest                 # offline unit tests (hand-verified records)
 uv run pytest -m network      # live end-to-end run against the APIs
 ```
 
+Result on the fixture (live APIs + `gpt-oss-120b` as judge, `examples/probe_bad7_report.md`): all seven bad
+entries come back `HALLUCINATED` and all seven controls `PASS`. Rule-based only (`--no-llm`) catches the
+five surname-level errors; the two first-name errors need the LLM.
+
+## Verdict policy
+
+Each entry gets a rule-based verdict and, when an LLM is configured, an LLM verdict. The reported verdict
+is the **stricter** of the two, and the report says when they disagree. `@misc` entries with a URL (model
+cards, dataset pages, blog posts) are checked by fetching the URL instead of searching for a paper.
+
 ## Limits
 
 - The surname diff cannot see wrong first names. That is what the LLM step is for.

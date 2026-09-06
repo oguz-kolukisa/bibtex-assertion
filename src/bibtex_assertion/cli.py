@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .artifact import artifact_url, assess_artifact, url_resolves
 from .bib import Entry, parse_bib
 from .cache import JsonCache
 from .compare import assess
@@ -35,6 +36,9 @@ def run(entries: list[Entry], args: argparse.Namespace) -> list[Result]:
 
 
 def _check_one(entry: Entry, lookup: Lookup, judge: Judge | None) -> Result:
+    url = artifact_url(entry)
+    if url:
+        return Result(assess_artifact(entry, url_resolves(url)))
     candidates = lookup.candidates(entry)
     rules = assess(entry, candidates)
     llm = _adjudicate(judge, entry, candidates, rules)

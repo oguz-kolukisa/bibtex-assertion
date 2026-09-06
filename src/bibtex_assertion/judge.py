@@ -18,6 +18,13 @@ _SYSTEM = (
     "the records that public scholarly databases returned for its title. Judge ONLY from those records. "
     "Never rely on your own memory of papers. Answer with a single JSON object and nothing else."
 )
+_CONVENTIONS = """\
+Conventions: an author field ending in 'and others' deliberately truncates the list, so authors missing
+after the listed ones are NOT an error. Compare the raw author field too: a garbled LaTeX accent macro
+(e.g. {\\u{A}} standing in for a first name) is a MINOR defect. A wrong first name for a correct surname
+counts as an added non-author (HALLUCINATED). A wrong surname is an added non-author, not a misspelling,
+unless it is within one or two letters of the real one.
+"""
 _SCHEMA = {
     "exists": "true|false", "matching_record": "index into records or null",
     "author_verdict": "exact|minor|hallucinated", "invented_authors": ["names in the entry that are not on the paper"],
@@ -58,7 +65,7 @@ class Judge:
 
 def build_prompt(entry: Entry, candidates: list[Candidate], rules: Assessment) -> str:
     return "\n\n".join([
-        "CRITERIA:\n" + CRITERIA,
+        "CRITERIA:\n" + CRITERIA + _CONVENTIONS,
         "BIBTEX ENTRY (key %s):\n%s" % (entry.key, json.dumps(_entry_view(entry), indent=1)),
         "RECORDS FROM DATABASES:\n" + json.dumps([c.to_dict() for c in candidates[:6]], indent=1),
         "RULE-BASED PRECHECK (surname matching, may be wrong on name variants):\n" + json.dumps(rules.to_dict(), indent=1),
@@ -77,5 +84,6 @@ def parse_json(text: str) -> dict:
 
 
 def _entry_view(entry: Entry) -> dict:
-    return {"type": entry.entry_type, "title": entry.title, "authors": entry.authors, "year": entry.year,
+    return {"type": entry.entry_type, "title": entry.title, "authors": entry.authors,
+            "author_field_raw": entry.fields.get("author", ""), "year": entry.year,
             "venue": entry.venue, "arxiv_id": entry.arxiv_id}

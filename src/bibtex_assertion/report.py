@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from .compare import Assessment
 
 _ICON = {"ok": "PASS", "minor": "MINOR", "hallucinated": "HALLUCINATED", "unverifiable": "UNVERIFIABLE"}
+_SEVERITY = {"ok": 0, "unverifiable": 1, "minor": 2, "hallucinated": 3}
 
 
 @dataclass
@@ -18,9 +19,11 @@ class Result:
 
     @property
     def verdict(self) -> str:
-        if self.llm and self.llm.get("verdict") in _ICON:
-            return self.llm["verdict"]
-        return self.rules.verdict
+        """The stricter of the rule-based and the LLM verdict, so neither judge can hide a problem."""
+        llm_verdict = (self.llm or {}).get("verdict")
+        if llm_verdict not in _ICON:
+            return self.rules.verdict
+        return max(self.rules.verdict, llm_verdict, key=_SEVERITY.__getitem__)
 
     @property
     def disagreement(self) -> bool:
