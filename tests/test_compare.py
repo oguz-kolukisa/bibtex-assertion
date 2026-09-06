@@ -104,3 +104,11 @@ def test_year_far_from_every_record_is_minor(bad7_entries):
     entry = bad7_entries["he2016deep"]
     old = Candidate("arxiv", entry.title, ("Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"), year="2012")
     assert assess(entry, [old]).verdict == "minor"
+
+
+def test_record_with_swapped_name_order_is_not_invented():
+    from bibtex_assertion.bib import parse_bib
+    entry = parse_bib('@article{k, title={TextCAM}, author={Zhao, Qiming and Xu, Min}, year={2025}}')[0]
+    swapped = [Candidate("openalex", "TextCAM", ("Qiming Zhao", "Xu Min"), year="2025")]
+    out = assess(entry, swapped)
+    assert out.verdict == "ok" and not out.invented_authors and not out.missing_authors

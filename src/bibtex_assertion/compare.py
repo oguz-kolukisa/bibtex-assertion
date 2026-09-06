@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .bib import Entry, has_et_al
-from .normalize import edit_distance, surname, title_similarity
+from .normalize import clean_latex, edit_distance, normalize_key, strip_dblp_suffix, surname, title_similarity
 from .sources import Candidate
 
 TITLE_MATCH = 0.6
@@ -70,7 +70,7 @@ def _is_artifact(entry: Entry) -> bool:
 
 def _check_authors(entry: Entry, best: Candidate, out: Assessment) -> None:
     bib, real = [surname(a) for a in entry.authors], [surname(a) for a in best.authors]
-    _diff_surnames(bib, real, out)
+    _diff_surnames(bib, _reconcile_name_order(bib, best.authors, real), out)
     truncated = has_et_al(entry.fields.get("author", ""))
     if out.invented_authors or (_missing_fraction(out, real) > 0.5 and not truncated):
         out.verdict = "hallucinated"
@@ -90,6 +90,17 @@ def _diff_surnames(bib: list[str], real: list[str], out: Assessment) -> None:
         if match != name and not _is_substring(name, match):
             out.misspelled_authors.append((name, match))
     out.missing_authors = unmatched_real
+
+
+def _reconcile_name_order(bib: list[str], full_names: tuple[str, ...], real: list[str]) -> list[str]:
+    """Records sometimes store 'Xu Min' for 'Min Xu'; if a bib surname equals a record's first token and
+    nothing else claims that record, treat that token as the surname."""
+    reconciled = list(real)
+    for i, full in enumerate(full_names):
+        tokens = normalize_key(strip_dblp_suffix(clean_latex(full))).split()
+        if reconciled[i] not in bib and tokens and tokens[0] in bib and tokens[0] not in reconciled:
+            reconciled[i] = tokens[0]
+    return reconciled
 
 
 def _closest(name: str, pool: list[str]) -> str | None:

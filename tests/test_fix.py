@@ -31,3 +31,13 @@ def test_fixed_bib_skips_correct_entries(bad7_entries):
     entry = bad7_entries["he2016deep"]
     real = Candidate("arxiv", entry.title, ("Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"), year="2016")
     assert fixed_bib([Result(assess(entry, [real]), entry=entry)]) == ("", [])
+
+
+def test_author_field_normalizes_lookalike_unicode(bad7_entries):
+    entry = bad7_entries["he2016deep"]
+    rec = Candidate("openalex", entry.title, ("Chun‐Hao Chang", "Κonstantinos Thomas", "Xiangyu Zhang", "Shaoqing Ren"), year="2016")
+    result = Result(assess(entry, [rec]), entry=entry)
+    result.rules.invented_authors.append("forced")  # make it fixable for the test
+    from bibtex_assertion.fix import fixed_author_field
+    field = fixed_author_field(result)
+    assert "Chun-Hao" in field and "Konstantinos" in field

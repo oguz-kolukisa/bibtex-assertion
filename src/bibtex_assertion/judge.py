@@ -64,7 +64,7 @@ class Judge:
             model=self.model, temperature=0,
             messages=[{"role": "system", "content": _SYSTEM},
                       {"role": "user", "content": build_prompt(entry, candidates, rules)}])
-        return parse_json(response.choices[0].message.content or "")
+        return validate_against_records(parse_json(response.choices[0].message.content or ""), candidates)
 
 
 def build_prompt(entry: Entry, candidates: list[Candidate], rules: Assessment) -> str:
@@ -75,6 +75,28 @@ def build_prompt(entry: Entry, candidates: list[Candidate], rules: Assessment) -
         "RULE-BASED PRECHECK (surname matching, may be wrong on name variants):\n" + json.dumps(rules.to_dict(), indent=1),
         "Respond with JSON of this shape:\n" + json.dumps(_SCHEMA, indent=1),
     ])
+
+
+def validate_against_records(verdict: dict, candidates: list[Candidate]) -> dict:
+    """An LLM claim that an author is invented is dropped when that name appears in a record."""
+    claimed = verdict.get("invented_authors") or []
+    names = {_norm(n) for c in candidates for n in c.authors}
+    refuted = [n for n in claimed if _norm(n) in names or _reversed(n) in names]
+    if not refuted or len(refuted) < len(claimed):
+        return verdict
+    verdict["invented_authors"] = []
+    verdict["explanation"] = f"LLM claimed invented author(s) {refuted} but the records list them; claim dropped. " + str(verdict.get("explanation", ""))
+    verdict["verdict"] = "minor" if verdict.get("verdict") == "hallucinated" else verdict.get("verdict")
+    return verdict
+
+
+def _norm(name: str) -> str:
+    from .normalize import normalize_key, strip_dblp_suffix
+    return normalize_key(strip_dblp_suffix(name.replace(",", " ")))
+
+
+def _reversed(name: str) -> str:
+    return " ".join(reversed(_norm(name).split()))
 
 
 def parse_json(text: str) -> dict:

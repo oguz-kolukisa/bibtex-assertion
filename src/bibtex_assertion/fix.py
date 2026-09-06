@@ -16,8 +16,18 @@ def fixable(result: Result) -> bool:
     return rules.best is not None and result.verdict != "ok" and (has_author_problem or llm_says_authors)
 
 
+_UNICODE_FIXES = {"\u2010": "-", "\u2011": "-", "\u039a": "K", "\u0391": "A", "\u0392": "B", "\u0395": "E"}
+
+
 def fixed_author_field(result: Result) -> str:
-    return " and ".join(bibtex_name(strip_dblp_suffix(a)) for a in result.rules.best.authors)
+    return " and ".join(bibtex_name(_ascii_punctuation(strip_dblp_suffix(a))) for a in result.rules.best.authors)
+
+
+def _ascii_punctuation(name: str) -> str:
+    """Records sometimes carry non-breaking hyphens or Greek capitals that look like Latin ones."""
+    for bad, good in _UNICODE_FIXES.items():
+        name = name.replace(bad, good)
+    return name
 
 
 def bibtex_name(name: str) -> str:
