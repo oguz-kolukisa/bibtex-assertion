@@ -8,6 +8,7 @@ import unicodedata
 _LATEX_ACCENT = re.compile(r"\\[`'^\"~=.uvHcdb]\s*\{?([A-Za-z])\}?")
 _LATEX_COMMAND = re.compile(r"\\[A-Za-z]+\s*")
 _NON_ALNUM = re.compile(r"[^a-z0-9 ]+")
+_DBLP_SUFFIX = re.compile(r"\s+\d{4}$")
 _STOPWORDS = {"a", "an", "the", "of", "for", "and", "in", "on", "to", "with", "via", "by", "is", "are"}
 
 
@@ -42,9 +43,14 @@ def title_similarity(left: str, right: str) -> float:
     return len(a & b) / len(a | b)
 
 
+def strip_dblp_suffix(name: str) -> str:
+    """DBLP disambiguates homonyms as 'Xiao Wang 0038'; the digits are not part of the name."""
+    return _DBLP_SUFFIX.sub("", name.strip())
+
+
 def surname(full_name: str) -> str:
     """Last token of a 'First Last' name, or the part before the comma in 'Last, First'."""
-    name = clean_latex(full_name).strip()
+    name = strip_dblp_suffix(clean_latex(full_name))
     if "," in name:
         return normalize_key(name.split(",", 1)[0])
     tokens = name.split()

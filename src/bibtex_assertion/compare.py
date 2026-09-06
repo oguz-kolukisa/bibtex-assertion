@@ -106,8 +106,10 @@ def _looks_like_typo(name: str, other: str) -> bool:
 
 
 def _is_substring(name: str, other: str) -> bool:
-    """Compound surnames written in one part (Rott Shaham / Shaham, Lopez-Paz / Lopez Paz)."""
+    """Compound surnames written in one part (Rott Shaham / Shaham, Del Ser / Ser, Lopez-Paz / Lopez Paz)."""
     shorter, longer = sorted((name, other), key=len)
+    if " " in longer and longer.split()[-1] == shorter:
+        return True
     return len(shorter) >= 4 and shorter in longer
 
 

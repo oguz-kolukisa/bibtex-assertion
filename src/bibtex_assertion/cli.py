@@ -11,6 +11,7 @@ from .artifact import artifact_url, assess_artifact, url_resolves
 from .bib import Entry, parse_bib
 from .cache import JsonCache
 from .compare import assess
+from .fix import fixed_bib
 from .http import HttpClient
 from .judge import Judge, LlmConfig
 from .lookup import Lookup
@@ -23,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     results = run(entries, args)
     if not args.md:
         print(to_markdown(results))
+    _write_fixed_bib(results, args)
     return 1 if any(r.verdict == "hallucinated" for r in results) else 0
 
 
@@ -66,6 +68,7 @@ def _parse_args(argv):
     parser.add_argument("--cache", default=".cache/bibtex-assertion", help="disk cache directory ('' to disable)")
     parser.add_argument("--json", default=None, help="write the JSON report here")
     parser.add_argument("--md", default=None, help="write the Markdown report here (default: stdout)")
+    parser.add_argument("--fixed-bib", default=None, help="write corrected entries (author lists from the records) here")
     parser.add_argument("--version", action="version", version=__version__)
     return parser.parse_args(argv)
 
@@ -92,6 +95,14 @@ def _judge(args) -> Judge | None:
 
 def _progress(result: Result) -> None:
     print(f"{result.rules.key:<32} {result.verdict}", file=sys.stderr)
+
+
+def _write_fixed_bib(results: list[Result], args) -> None:
+    if not args.fixed_bib:
+        return
+    text, keys = fixed_bib(results)
+    Path(args.fixed_bib).write_text(text, encoding="utf-8")
+    print(f"corrected {len(keys)} entries -> {args.fixed_bib}: {' '.join(keys)}", file=sys.stderr)
 
 
 def _write_report_files(results: list[Result], args) -> None:
