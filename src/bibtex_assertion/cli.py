@@ -38,12 +38,12 @@ def run(entries: list[Entry], args: argparse.Namespace) -> list[Result]:
 def _check_one(entry: Entry, lookup: Lookup, judge: Judge | None) -> Result:
     url = artifact_url(entry)
     if url:
-        return Result(assess_artifact(entry, url_resolves(url)))
+        return Result(assess_artifact(entry, url_resolves(url)), entry=entry)
     candidates = lookup.candidates(entry)
     rules = assess(entry, candidates)
     llm = _adjudicate(judge, entry, candidates, rules)
     errors = [e for e in lookup.errors if e.startswith(entry.key + "/")]
-    return Result(rules, llm, errors)
+    return Result(rules, llm, errors, entry)
 
 
 def _adjudicate(judge: Judge | None, entry: Entry, candidates, rules) -> dict | None:

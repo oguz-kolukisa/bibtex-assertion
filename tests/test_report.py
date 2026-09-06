@@ -6,7 +6,7 @@ def test_llm_verdict_overrides_rules_and_flags_disagreement():
     result = Result(Assessment("k", "ok"), {"verdict": "hallucinated", "explanation": "first name wrong"})
     assert result.verdict == "hallucinated" and result.disagreement
     md = to_markdown([result])
-    assert "HALLUCINATED: 1" in md and "rules said ok" in md
+    assert "HALLUCINATED: **1**" in md and "rules: ok, LLM: hallucinated" in md
 
 
 def test_json_roundtrip_has_keys():

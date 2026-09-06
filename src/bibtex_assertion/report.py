@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+from .bib import Entry
 from .compare import Assessment
 
 _ICON = {"ok": "PASS", "minor": "MINOR", "hallucinated": "HALLUCINATED", "unverifiable": "UNVERIFIABLE"}
@@ -16,6 +17,7 @@ class Result:
     rules: Assessment
     llm: dict | None = None
     errors: list[str] = field(default_factory=list)
+    entry: Entry | None = None
 
     @property
     def verdict(self) -> str:
@@ -39,28 +41,60 @@ def to_json(results: list[Result]) -> str:
 
 
 def to_markdown(results: list[Result]) -> str:
-    lines = ["# BibTeX assertion report", "", _summary_line(results), "",
-             "| Key | Verdict | Problems | Best match |", "|---|---|---|---|"]
-    lines.extend(_row(r) for r in results)
-    return "\n".join(lines) + "\n"
+    flagged = [r for r in results if r.verdict != "ok"]
+    passed = [r for r in results if r.verdict == "ok"]
+    lines = ["# BibTeX assertion report", "", *_summary(results), ""]
+    lines.extend(_problem_table(flagged))
+    lines.extend(["", "## Passed", "", ", ".join(f"`{r.rules.key}`" for r in passed) or "none", ""])
+    return "\n".join(lines)
 
 
-def _summary_line(results: list[Result]) -> str:
+def _summary(results: list[Result]) -> list[str]:
     counts = {label: sum(1 for r in results if r.verdict == label) for label in _ICON}
-    return " · ".join(f"{_ICON[label]}: {n}" for label, n in counts.items() if n) or "no entries"
+    lines = [f"- Entries checked: **{len(results)}**"]
+    lines.extend(f"- {_ICON[label]}: **{n}**" for label, n in counts.items())
+    return lines
 
 
-def _row(result: Result) -> str:
-    problems = "; ".join(_problems(result)) or "-"
-    best = result.rules.best
-    match = f"{best.source}: {best.title[:60]} ({best.year})" if best else "none"
-    return f"| `{result.rules.key}` | {_ICON[result.verdict]} | {problems} | {match} |"
+def _problem_table(flagged: list[Result]) -> list[str]:
+    if not flagged:
+        return ["No problems found."]
+    header = ["## Problems", "", "| Key | Verdict | Ours (BibTeX) | Real (best record) | Rule-based diff | LLM comment |",
+              "|---|---|---|---|---|---|"]
+    return header + [_row(r) for r in flagged]
 
 
-def _problems(result: Result) -> list[str]:
-    problems = list(result.rules.problems)
-    if result.llm and result.llm.get("explanation"):
-        problems.append("LLM: " + str(result.llm["explanation"]))
-    if result.disagreement:
-        problems.append(f"rules said {result.rules.verdict}, LLM said {result.llm['verdict']}")
-    return [p.replace("|", "/") for p in problems]
+def _row(r: Result) -> str:
+    cells = [f"`{r.rules.key}`", _ICON[r.verdict], _ours(r), _real(r), _diff(r), _llm_comment(r)]
+    return "| " + " | ".join(_cell(c) for c in cells) + " |"
+
+
+def _ours(r: Result) -> str:
+    if r.entry is None:
+        return "-"
+    return f"{r.entry.title} — {'; '.join(r.entry.authors) or 'no authors'} — {r.entry.venue or 'no venue'} {r.entry.year}"
+
+
+def _real(r: Result) -> str:
+    best = r.rules.best
+    if best is None:
+        return "no matching record" if not r.rules.problems else r.rules.problems[0]
+    return f"{best.title} — {'; '.join(best.authors)} — {best.venue or best.source} {best.year} ({best.source})"
+
+
+def _diff(r: Result) -> str:
+    problems = [p for p in r.rules.problems if not p.startswith("artifact URL")]
+    return "; ".join(problems) or "-"
+
+
+def _llm_comment(r: Result) -> str:
+    if not r.llm:
+        return "(no LLM)"
+    comment = str(r.llm.get("explanation", "")).strip() or "(no comment)"
+    if r.disagreement:
+        comment += f" [rules: {r.rules.verdict}, LLM: {r.llm['verdict']}]"
+    return comment
+
+
+def _cell(text: str) -> str:
+    return text.replace("|", "/").replace("\n", " ")
