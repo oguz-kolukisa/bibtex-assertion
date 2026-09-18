@@ -1,7 +1,7 @@
 # bibtex-assertion — agent instructions
 
-Personal tool of Oguz Kolukisa (`oguz-kolukisa`, private repo). Checks that BibTeX entries are real and
-correctly attributed using free scholarly APIs plus an optional LLM adjudicator.
+Checks that BibTeX entries are real and correctly attributed using free scholarly APIs plus an optional
+LLM adjudicator.
 
 ## Orientation
 

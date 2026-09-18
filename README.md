@@ -2,9 +2,8 @@
 
 Assert that every entry in a `.bib` file describes a real paper with the right authors, venue and year.
 
-The tool exists because conference citation checkers (ICLR, ICML, NeurIPS 2026) now flag "hallucinated
-references" and recommend rejection when a paper has two or more. Its verdicts follow their published
-criteria (`src/bibtex_assertion/criteria.py`).
+Verdicts follow the hallucinated-reference criteria published by the ICLR, ICML and NeurIPS 2026 program
+chairs (`src/bibtex_assertion/criteria.py`).
 
 ## How it works
 
@@ -66,8 +65,8 @@ uv run bibtex-assert tests/fixtures/probe_bad7.bib --mailto you@example.com
 
 ## Test fixture
 
-`tests/fixtures/probe_bad7.bib` holds 14 entries from a real NeurIPS 2026 submission: the seven that the
-program chairs' checker (and a manual audit) found wrong, plus seven correct controls.
+`tests/fixtures/probe_bad7.bib` holds 14 entries: seven with a known error each, plus seven correct
+controls.
 
 | Key | What is wrong |
 |---|---|
